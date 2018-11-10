@@ -30,19 +30,37 @@ void my_memcpy(char* dst, char const* src, size_t size) {
 
 
 
-    for (size_t i = offset; i < size - (size - offset) % BLOCK; i += BLOCK)
-    {
-        __m128i reg;
-
-        __asm__ volatile ("movdqu\t (%1), %0\n"
-                "movntdq\t %0, (%2)\n"
-        : "=x"(reg)
-        : "r"(srcc), "r"(dstt)
-        :"memory");
-
-        srcc += BLOCK;
-        dstt += BLOCK;
-    }
+//    for (size_t i = offset; i < size - (size - offset) % BLOCK; i += BLOCK)
+//    {
+//        __m128i reg;
+//
+//        __asm__ volatile (
+//            "movdqu\t (%1), %0\n"
+//            "movntdq\t %0, (%2)\n"
+//        : "=x"(reg)
+//        : "r"(srcc), "r"(dstt)
+//        :"memory");
+//
+//        srcc += BLOCK;
+//        dstt += BLOCK;
+//    }
+    int i = size - (size - offset) % BLOCK;
+    __m128i reg;
+    __asm__ volatile (
+            "l:\n"
+            "cmp  $16, %2\n"
+            "jb ex\n"
+            "movdqu  (%1), %3\n"
+            "movntdq %3, (%0)\n"
+            "add     $16,  %0\n"
+            "add     $16,  %1\n"
+            "sub     $16,  %2\n"
+            "jmp     l\n"
+            "ex:\n"
+    :"=r"(dstt), "=r"(srcc), "=r"(i), "=x"(reg)
+    :"0"(dstt), "1"(srcc), "2"(i)
+    :"memory"
+    );
 
 
     naive_memcpy(dstt, srcc, (size - offset) % BLOCK);
